@@ -87,6 +87,102 @@ export const RULE_SOURCES: RuleSource[] = [
     description: 'Guidelines for clear, readable content and establishing expertise, authority, and trustworthiness.',
     url: 'https://developers.google.com/search/docs/fundamentals/creating-helpful-content',
     ruleIds: ['content-001', 'content-002']
+  },
+  {
+    id: 'airbnb',
+    name: 'Airbnb JavaScript Style Guide',
+    organization: 'Airbnb',
+    description: 'Industry-leading JavaScript style guide covering ES6+, React, naming conventions, and code organization.',
+    url: 'https://github.com/airbnb/javascript',
+    ruleIds: ['airbnb-001', 'airbnb-002', 'airbnb-003', 'airbnb-004', 'airbnb-005']
+  },
+  {
+    id: 'google-js',
+    name: 'Google JavaScript Style Guide',
+    organization: 'Google',
+    description: 'Google\'s comprehensive JavaScript coding standards for maintainable and consistent code.',
+    url: 'https://google.github.io/styleguide/jsguide.html',
+    ruleIds: ['googlejs-001', 'googlejs-002', 'googlejs-003', 'googlejs-004']
+  },
+  {
+    id: 'eslint',
+    name: 'ESLint Recommended Rules',
+    organization: 'ESLint',
+    description: 'Core JavaScript linting rules to identify problematic patterns and enforce code quality.',
+    url: 'https://eslint.org/docs/latest/rules/',
+    ruleIds: ['eslint-001', 'eslint-002', 'eslint-003', 'eslint-004']
+  },
+  {
+    id: 'lighthouse',
+    name: 'Google Lighthouse',
+    organization: 'Google Chrome',
+    description: 'Automated tool for improving quality of web pages: performance, accessibility, PWA, and SEO.',
+    url: 'https://developers.google.com/web/tools/lighthouse',
+    ruleIds: ['lighthouse-001', 'lighthouse-002', 'lighthouse-003', 'lighthouse-004']
+  },
+  {
+    id: 'pwa',
+    name: 'Progressive Web App Standards',
+    organization: 'W3C / Google',
+    description: 'Standards for building Progressive Web Apps with offline support, installability, and app-like experience.',
+    url: 'https://web.dev/progressive-web-apps/',
+    ruleIds: ['pwa-001', 'pwa-002', 'pwa-003', 'pwa-004']
+  },
+  {
+    id: 'a11y-project',
+    name: 'The A11Y Project',
+    organization: 'A11Y Project Community',
+    description: 'Community-driven effort to make digital accessibility easier with practical tips and guidelines.',
+    url: 'https://www.a11yproject.com/',
+    ruleIds: ['a11y-001', 'a11y-002', 'a11y-003']
+  },
+  {
+    id: 'webaim',
+    name: 'WebAIM Accessibility Guidelines',
+    organization: 'WebAIM',
+    description: 'Web accessibility evaluation tools and resources from Utah State University\'s WebAIM organization.',
+    url: 'https://webaim.org/',
+    ruleIds: ['webaim-001', 'webaim-002', 'webaim-003']
+  },
+  {
+    id: 'schema-org',
+    name: 'Schema.org Structured Data',
+    organization: 'Schema.org',
+    description: 'Structured data vocabulary for marking up web content to help search engines understand context.',
+    url: 'https://schema.org/',
+    ruleIds: ['schema-001', 'schema-002']
+  },
+  {
+    id: 'opengraph',
+    name: 'Open Graph Protocol',
+    organization: 'Facebook',
+    description: 'Protocol for integrating web pages into the social graph with rich preview cards.',
+    url: 'https://ogp.me/',
+    ruleIds: ['og-001', 'og-002', 'og-003']
+  },
+  {
+    id: 'http-archive',
+    name: 'HTTP Archive Best Practices',
+    organization: 'HTTP Archive',
+    description: 'Data-driven web performance insights from crawling millions of pages monthly.',
+    url: 'https://httparchive.org/',
+    ruleIds: ['httparch-001', 'httparch-002']
+  },
+  {
+    id: 'carbon',
+    name: 'Carbon Design System',
+    organization: 'IBM',
+    description: 'IBM\'s design system for creating consistent digital experiences with accessibility built-in.',
+    url: 'https://carbondesignsystem.com/',
+    ruleIds: ['carbon-001', 'carbon-002']
+  },
+  {
+    id: 'material',
+    name: 'Material Design Guidelines',
+    organization: 'Google',
+    description: 'Google\'s design system for creating intuitive and beautiful user interfaces.',
+    url: 'https://material.io/design',
+    ruleIds: ['material-001', 'material-002']
   }
 ];
 
