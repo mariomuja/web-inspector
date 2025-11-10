@@ -280,18 +280,23 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     }
 
     // Semantic HTML
-    case 'wcag-004':
+    case 'wcag-004': {
       const hasNav = /<nav/i.test(html);
       const hasMain = /<main/i.test(html);
       const hasHeader = /<header/i.test(html);
       const hasFooter = /<footer/i.test(html);
       const semanticCount = [hasNav, hasMain, hasHeader, hasFooter].filter(Boolean).length;
       
+      const snippetInfo = semanticCount < 2 ? extractSnippet(/<body/i, 5) : { snippet: null, lineNumber: null };
+      
       return {
         passed: semanticCount >= 2,
         details: `Found ${semanticCount}/4 key semantic elements: nav(${hasNav}), main(${hasMain}), header(${hasHeader}), footer(${hasFooter})`,
-        recommendation: 'Use semantic HTML5 elements like <nav>, <main>, <header>, <footer>, <article>, and <section>.'
+        recommendation: 'Use semantic HTML5 elements like <nav>, <main>, <header>, <footer>, <article>, and <section>.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
+    }
 
     // Security headers (original check - kept for backward compatibility)
     case 'sec-002':
@@ -316,12 +321,17 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const hasLightBg = (html.match(new RegExp(`background[^:]*:\\s*(${lightColors.source})`, 'gi')) || []).length;
       const hasLightText = (html.match(new RegExp(`color[^:]*:\\s*(${lightColors.source})`, 'gi')) || []).length;
       const suspiciousContrast = hasLightBg > 0 && hasLightText > 0;
+      
+      const snippetInfo = suspiciousContrast ? extractSnippet(/color[^:]*:\s*(#fff|white)/i, 2) : { snippet: null, lineNumber: null };
+      
       return {
         passed: !suspiciousContrast,
         details: suspiciousContrast
           ? 'Potential low-contrast combinations detected in CSS. Use tools like WebAIM contrast checker.'
           : 'No obvious contrast issues detected in inline styles. Use contrast checker tools for thorough verification.',
-        recommendation: 'Ensure 4.5:1 contrast ratio for normal text, 3:1 for large text. Test with WebAIM Contrast Checker.'
+        recommendation: 'Ensure 4.5:1 contrast ratio for normal text, 3:1 for large text. Test with WebAIM Contrast Checker.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -330,10 +340,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const interactiveElements = (html.match(/<(button|a|input|select|textarea)[^>]*>/gi) || []).length;
       const elementsWithTabindex = (html.match(/tabindex=/gi) || []).length;
       const negativeTabindex = (html.match(/tabindex=["']-1["']/gi) || []).length;
+      
+      const snippetInfo = negativeTabindex > 0 ? extractSnippet(/tabindex=["']-1["']/i, 2) : { snippet: null, lineNumber: null };
+      
       return {
         passed: negativeTabindex === 0 || elementsWithTabindex > interactiveElements * 0.5,
         details: `${interactiveElements} interactive elements, ${elementsWithTabindex} with tabindex, ${negativeTabindex} with tabindex=-1`,
-        recommendation: 'Ensure all interactive elements are keyboard accessible. Avoid tabindex="-1" on interactive elements.'
+        recommendation: 'Ensure all interactive elements are keyboard accessible. Avoid tabindex="-1" on interactive elements.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -341,10 +356,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'seo-004': {
       const hasJsonLd = /<script[^>]+type=["']application\/ld\+json["']/i.test(html);
       const hasMicrodata = /itemscope|itemprop/i.test(html);
+      
+      const snippetInfo = !(hasJsonLd || hasMicrodata) ? extractSnippet(/<head/i, 6) : extractSnippet(/application\/ld\+json/i, 2);
+      
       return {
         passed: hasJsonLd || hasMicrodata,
         details: `Structured data: JSON-LD(${hasJsonLd}), Microdata(${hasMicrodata})`,
-        recommendation: 'Implement Schema.org structured data with JSON-LD for rich search results.'
+        recommendation: 'Implement Schema.org structured data with JSON-LD for rich search results.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -353,10 +373,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const hasPreload = /<link[^>]+rel=["']preload["'][^>]+as=["'](style|font)["']/i.test(html);
       const inlineStyles = (html.match(/<style[^>]*>/gi) || []).length;
       const externalStyles = (html.match(/<link[^>]+rel=["']stylesheet["']/gi) || []).length;
+      
+      const snippetInfo = externalStyles > 0 ? extractSnippet(/<link[^>]+rel=["']stylesheet["']/i, 2) : extractSnippet(/<head/i, 5);
+      
       return {
         passed: hasPreload || (inlineStyles > 0 && externalStyles > 0),
         details: `Preload: ${hasPreload}, Inline styles: ${inlineStyles}, External: ${externalStyles}`,
-        recommendation: 'Inline critical CSS and use <link rel="preload"> for fonts. Defer non-critical CSS.'
+        recommendation: 'Inline critical CSS and use <link rel="preload"> for fonts. Defer non-critical CSS.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -364,10 +389,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'js-003': {
       const hasTryCatch = /try\s*\{[\s\S]*?\}\s*catch/i.test(html);
       const hasErrorHandler = /\.catch\(|onerror|addEventListener\(['"]error['"]|window\.onerror/i.test(html);
+      
+      const snippetInfo = hasTryCatch ? extractSnippet(/try\s*\{/i, 3) : (hasErrorHandler ? extractSnippet(/\.catch\(|onerror/i, 2) : extractSnippet(/<script/i, 4));
+      
       return {
         passed: hasTryCatch || hasErrorHandler,
         details: `Error handling: try/catch(${hasTryCatch}), error handlers(${hasErrorHandler})`,
-        recommendation: 'Implement try/catch blocks and global error handlers for graceful error handling.'
+        recommendation: 'Implement try/catch blocks and global error handlers for graceful error handling.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -727,10 +757,21 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const blockingScripts = html.match(/<script(?![^>]*\b(?:defer|async)\b)[^>]*src=["'][^"']+["'][^>]*>/gi) || [];
       const blockingStyles = html.match(/<link[^>]+rel=["']stylesheet["'](?![^>]*\bmedia=["']print["'])[^>]*>/gi) || [];
       const totalBlocking = blockingScripts.length + blockingStyles.length;
+      
+      let snippetInfo = { snippet: null, lineNumber: null };
+      if (blockingScripts.length > 0) {
+        const firstScript = blockingScripts[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        snippetInfo = extractSnippet(new RegExp(firstScript, 'i'), 2);
+      } else if (blockingStyles.length > 0) {
+        snippetInfo = extractSnippet(/<link[^>]+rel=["']stylesheet["']/i, 2);
+      }
+      
       return {
         passed: totalBlocking === 0,
         details: `Found ${blockingScripts.length} render-blocking scripts and ${blockingStyles.length} render-blocking stylesheets.`,
-        recommendation: 'Add defer or async attributes to <script> tags. Use media="print" or load CSS asynchronously for non-critical styles.'
+        recommendation: 'Add defer or async attributes to <script> tags. Use media="print" or load CSS asynchronously for non-critical styles.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -741,10 +782,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const hasWebP = /<source[^>]+type=["']image\/webp["']/i.test(html);
       const hasAVIF = /<source[^>]+type=["']image\/avif["']/i.test(html);
       const hasLazyLoad = imgTags.some(img => /loading=["']lazy["']/i.test(img));
+      
+      const snippetInfo = imgTags.length > 0 ? extractSnippet(/<img[^>]*>/i, 2) : { snippet: null, lineNumber: null };
+      
       return {
         passed: (hasWebP || hasAVIF) && hasLazyLoad,
         details: `Images: ${imgTags.length}, WebP: ${hasWebP ? 'Yes' : 'No'}, AVIF: ${hasAVIF ? 'No' : 'No'}, Lazy Loading: ${hasLazyLoad ? 'Yes' : 'No'}`,
-        recommendation: 'Use <picture> with WebP/AVIF formats. Add loading="lazy" to below-fold images.'
+        recommendation: 'Use <picture> with WebP/AVIF formats. Add loading="lazy" to below-fold images.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -779,10 +825,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const hasOgImage = /<meta[^>]+property=["']og:image["']/i.test(html);
       const hasOgUrl = /<meta[^>]+property=["']og:url["']/i.test(html);
       const ogCount = [hasOgTitle, hasOgDesc, hasOgImage, hasOgUrl].filter(Boolean).length;
+      
+      const snippetInfo = ogCount < 3 ? extractSnippet(/<head/i, 5) : extractSnippet(/property=["']og:/i, 2);
+      
       return {
         passed: ogCount >= 3,
         details: `Open Graph tags: title(${hasOgTitle}), description(${hasOgDesc}), image(${hasOgImage}), url(${hasOgUrl})`,
-        recommendation: 'Add all 4 essential Open Graph meta tags: og:title, og:description, og:image, og:url.'
+        recommendation: 'Add all 4 essential Open Graph meta tags: og:title, og:description, og:image, og:url.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -791,34 +842,47 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const hasTwitterCard = /<meta[^>]+name=["']twitter:card["']/i.test(html);
       const hasTwitterTitle = /<meta[^>]+name=["']twitter:title["']/i.test(html);
       const hasTwitterDesc = /<meta[^>]+name=["']twitter:description["']/i.test(html);
+      
+      const snippetInfo = !(hasTwitterCard && hasTwitterTitle) ? extractSnippet(/<head/i, 5) : extractSnippet(/name=["']twitter:/i, 2);
+      
       return {
         passed: hasTwitterCard && hasTwitterTitle,
         details: `Twitter Card: ${hasTwitterCard ? 'Yes' : 'No'}, Title: ${hasTwitterTitle ? 'Yes' : 'No'}, Description: ${hasTwitterDesc ? 'Yes' : 'No'}`,
-        recommendation: 'Add Twitter Card meta tags for better tweet previews.'
+        recommendation: 'Add Twitter Card meta tags for better tweet previews.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
     // PWA Manifest
     case 'pwa-001': {
       const hasManifest = /<link[^>]+rel=["']manifest["']/i.test(html);
+      const snippetInfo = hasManifest ? extractSnippet(/<link[^>]+rel=["']manifest["']/i, 1) : extractSnippet(/<head/i, 5);
+      
       return {
         passed: hasManifest,
         details: hasManifest
           ? 'Web app manifest link found.'
           : 'No web app manifest detected.',
-        recommendation: 'Add <link rel="manifest" href="/manifest.json"> for PWA installability.'
+        recommendation: 'Add <link rel="manifest" href="/manifest.json"> for PWA installability.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
     // Service Worker
     case 'pwa-002': {
       const hasServiceWorker = /navigator\.serviceWorker\.register/i.test(html);
+      const snippetInfo = hasServiceWorker ? extractSnippet(/navigator\.serviceWorker/i, 3) : extractSnippet(/<script/i, 3);
+      
       return {
         passed: hasServiceWorker,
         details: hasServiceWorker
           ? 'Service worker registration found in JavaScript.'
           : 'No service worker registration detected.',
-        recommendation: 'Register a service worker for offline support and caching.'
+        recommendation: 'Register a service worker for offline support and caching.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -828,22 +892,31 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const hasAriaLabelledBy = /aria-labelledby=/i.test(html);
       const hasAriaDescribedBy = /aria-describedby=/i.test(html);
       const ariaCount = [hasAriaLabel, hasAriaLabelledBy, hasAriaDescribedBy].filter(Boolean).length;
+      
+      const snippetInfo = ariaCount === 0 ? extractSnippet(/<(div|button|span|a)[^>]*role=/i, 2) : extractSnippet(/aria-label=/i, 1);
+      
       return {
         passed: ariaCount > 0,
         details: `ARIA attributes found: aria-label(${hasAriaLabel}), aria-labelledby(${hasAriaLabelledBy}), aria-describedby(${hasAriaDescribedBy})`,
-        recommendation: 'Use ARIA labels to enhance accessibility of custom widgets and dynamic content.'
+        recommendation: 'Use ARIA labels to enhance accessibility of custom widgets and dynamic content.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
     // Focus indicators
     case 'wcag-005': {
       const removesOutline = /:focus\s*\{\s*outline\s*:\s*none/i.test(html);
+      const snippetInfo = removesOutline ? extractSnippet(/:focus\s*\{/i, 2) : { snippet: null, lineNumber: null };
+      
       return {
         passed: !removesOutline,
         details: removesOutline
           ? 'CSS removes focus outline without providing alternative.'
           : 'Focus styles appear to be preserved.',
-        recommendation: 'Never use :focus { outline: none; } without providing a visible alternative focus indicator.'
+        recommendation: 'Never use :focus { outline: none; } without providing a visible alternative focus indicator.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -876,10 +949,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'css-003': {
       const hasMediaQuery = /@media/i.test(html);
       const hasViewport = /<meta[^>]+name=["']viewport["']/i.test(html);
+      
+      const snippetInfo = !hasMediaQuery ? extractSnippet(/<style/i, 4) : (!hasViewport ? extractSnippet(/<head/i, 3) : extractSnippet(/@media/i, 2));
+      
       return {
         passed: hasMediaQuery && hasViewport,
         details: `Media queries: ${hasMediaQuery ? 'Yes' : 'No'}, Viewport meta: ${hasViewport ? 'Yes' : 'No'}`,
-        recommendation: 'Implement responsive design with @media queries and viewport meta tag.'
+        recommendation: 'Implement responsive design with @media queries and viewport meta tag.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -888,10 +966,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const inlineStyles = (html.match(/<style[^>]*>/gi) || []).length;
       const externalStyles = (html.match(/<link[^>]+rel=["']stylesheet["']/gi) || []).length;
       const inlineStyleAttrs = (html.match(/\sstyle=/gi) || []).length;
+      
+      const snippetInfo = inlineStyleAttrs >= 10 ? extractSnippet(/\sstyle=/i, 2) : (inlineStyles > 1 ? extractSnippet(/<style/i, 2) : { snippet: null, lineNumber: null });
+      
       return {
         passed: externalStyles > 0 && inlineStyles <= 1 && inlineStyleAttrs < 10,
         details: `External: ${externalStyles}, Inline <style>: ${inlineStyles}, Inline style= attributes: ${inlineStyleAttrs}`,
-        recommendation: 'Use external CSS files for better caching and maintainability. Inline only critical CSS.'
+        recommendation: 'Use external CSS files for better caching and maintainability. Inline only critical CSS.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -900,10 +983,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const inputs = (html.match(/<input[^>]*>/gi) || []).length;
       const labels = (html.match(/<label[^>]*>/gi) || []).length;
       const inputsWithLabels = (html.match(/<label[^>]*for=["'][^"']+["'][^>]*>/gi) || []).length;
+      
+      const snippetInfo = inputs > 0 && inputsWithLabels < inputs * 0.8 ? extractSnippet(/<input[^>]*>/i, 2) : { snippet: null, lineNumber: null };
+      
       return {
         passed: inputs === 0 || inputsWithLabels >= inputs * 0.8,
         details: `${inputs} inputs found, ${inputsWithLabels} with associated labels (${Math.round(inputsWithLabels/inputs*100) || 0}%)`,
-        recommendation: 'Every form input must have an associated <label> element with for="id" attribute.'
+        recommendation: 'Every form input must have an associated <label> element with for="id" attribute.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -911,10 +999,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'a11y-001': {
       const genericLinks = (html.match(/<a[^>]*>(\s*)(click here|here|more|read more|link)(\s*)<\/a>/gi) || []).length;
       const totalLinks = (html.match(/<a[^>]*href=/gi) || []).length;
+      
+      const snippetInfo = genericLinks > 0 ? extractSnippet(/<a[^>]*>(click here|here|more|read more)/i, 1) : { snippet: null, lineNumber: null };
+      
       return {
         passed: genericLinks === 0,
         details: `${totalLinks} links found, ${genericLinks} with generic text like "click here" or "more"`,
-        recommendation: 'Use descriptive link text that makes sense out of context. Avoid "click here", "read more", etc.'
+        recommendation: 'Use descriptive link text that makes sense out of context. Avoid "click here", "read more", etc.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -1043,10 +1136,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const hasVar = /\bvar\s+/i.test(html);
       const hasConst = /\bconst\s+/i.test(html);
       const hasLet = /\blet\s+/i.test(html);
+      
+      const snippetInfo = hasVar ? extractSnippet(/\bvar\s+/i, 2) : { snippet: null, lineNumber: null };
+      
       return {
         passed: !hasVar && (hasConst || hasLet),
         details: `JavaScript declarations: var(${hasVar}), const(${hasConst}), let(${hasLet})`,
-        recommendation: 'Use const for non-reassigned variables, let for reassignable ones. Never use var.'
+        recommendation: 'Use const for non-reassigned variables, let for reassignable ones. Never use var.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -1090,10 +1188,16 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'cwv-002': {
       const imgsWithDimensions = (html.match(/<img[^>]+(width=|height=)[^>]*>/gi) || []).length;
       const totalImages = (html.match(/<img[^>]*>/gi) || []).length;
+      const imgsWithoutDimensions = html.match(/<img(?![^>]+(width=|height=))[^>]*>/gi) || [];
+      
+      const snippetInfo = imgsWithoutDimensions.length > 0 ? extractSnippet(new RegExp(imgsWithoutDimensions[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), 1) : { snippet: null, lineNumber: null };
+      
       return {
         passed: totalImages === 0 || imgsWithDimensions / totalImages > 0.8,
         details: `${imgsWithDimensions}/${totalImages} images have width/height attributes (${Math.round(imgsWithDimensions/totalImages*100) || 0}%)`,
-        recommendation: 'Add width and height attributes to all images to prevent layout shifts (CLS).'
+        recommendation: 'Add width and height attributes to all images to prevent layout shifts (CLS).',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -1103,10 +1207,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const scriptTags = (html.match(/<script[^>]*>/gi) || []).length;
       const inlineScripts = (html.match(/<script(?![^>]*src=)[^>]*>[\s\S]*?<\/script>/gi) || []).length;
       const externalScripts = scriptTags - inlineScripts;
+      
+      const snippetInfo = scriptTags >= 15 ? extractSnippet(/<script/i, 3) : { snippet: null, lineNumber: null };
+      
       return {
         passed: scriptTags < 15 && inlineScripts < 5,
         details: `Total scripts: ${scriptTags} (${externalScripts} external, ${inlineScripts} inline)`,
-        recommendation: 'Minimize JavaScript: bundle files, remove unused code, use code splitting, lazy load non-critical scripts.'
+        recommendation: 'Minimize JavaScript: bundle files, remove unused code, use code splitting, lazy load non-critical scripts.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
