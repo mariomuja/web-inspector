@@ -360,6 +360,60 @@
               }
             }
           }
+
+          .code-snippet-section {
+            margin-top: 16px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+
+            .code-snippet-header {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+              margin-bottom: 12px;
+              color: #667eea;
+              font-size: 14px;
+
+              mat-icon {
+                font-size: 20px;
+                width: 20px;
+                height: 20px;
+              }
+
+              strong {
+                font-weight: 500;
+              }
+
+              .line-number {
+                margin-left: auto;
+                background: #667eea;
+                color: white;
+                padding: 4px 12px;
+                border-radius: 12px;
+                font-size: 12px;
+                font-weight: 500;
+              }
+            }
+
+            .code-snippet {
+              margin: 0;
+              padding: 12px;
+              background: #1e1e1e;
+              border-radius: 6px;
+              overflow-x: auto;
+
+              code {
+                color: #d4d4d4;
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 13px;
+                line-height: 1.6;
+                white-space: pre;
+                display: block;
+              }
+            }
+          }
         }
       }
     }

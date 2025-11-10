@@ -102,7 +102,9 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
           sourceUrl: rule.sourceUrl,
           recommendation: check.recommendation || `Follow ${rule.source} guidelines: ${rule.examples?.good?.join(', ') || 'See documentation'}`,
           examples: rule.examples?.good || [],
-          page: siteUrl
+          page: siteUrl,
+          codeSnippet: check.codeSnippet,
+          lineNumber: check.lineNumber
         });
 
         if (rule.severity === 'error') summary.failedRules++;
@@ -157,6 +159,23 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
 
 function performRuleCheck(rule, html, headers, siteUrl) {
   const htmlLower = html.toLowerCase();
+  
+  // Helper function to extract code snippet with line number
+  const extractSnippet = (pattern, context = 2) => {
+    const lines = html.split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (pattern.test(lines[i])) {
+        const start = Math.max(0, i - context);
+        const end = Math.min(lines.length, i + context + 1);
+        const snippet = lines.slice(start, end).join('\n');
+        return {
+          snippet: snippet.trim().substring(0, 500), // Limit to 500 chars
+          lineNumber: i + 1
+        };
+      }
+    }
+    return { snippet: null, lineNumber: null };
+  };
 
   // Specific checks based on rule ID
   switch (rule.id) {
@@ -187,42 +206,56 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const hasDescription = /<meta[^>]+name=["']description["']/i.test(html);
       const passed = hasCharset && hasViewport;
       
+      const snippetInfo = !hasViewport ? extractSnippet(/<head/i, 3) : { snippet: null, lineNumber: null };
+      
       return {
         passed,
         details: `Charset: ${hasCharset ? '✓' : '✗'}, Viewport: ${hasViewport ? '✓' : '✗'}, Description: ${hasDescription ? '✓' : '✗'}`,
-        recommendation: 'Add essential meta tags: <meta charset="UTF-8"> and <meta name="viewport" content="width=device-width, initial-scale=1">'
+        recommendation: 'Add essential meta tags: <meta charset="UTF-8"> and <meta name="viewport" content="width=device-width, initial-scale=1">',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
     // Title tag
-    case 'seo-001':
+    case 'seo-001': {
       const titleMatch = html.match(/<title>([^<]+)<\/title>/i);
       const hasTitle = titleMatch && titleMatch[1].trim().length > 0;
       const titleLength = titleMatch ? titleMatch[1].trim().length : 0;
       const goodLength = titleLength >= 10 && titleLength <= 60;
+      
+      const snippetInfo = titleMatch ? extractSnippet(/<title>/i, 1) : extractSnippet(/<head/i, 3);
       
       return {
         passed: hasTitle && goodLength,
         details: hasTitle 
           ? `Title "${titleMatch[1].trim()}" (${titleLength} chars). Optimal: 50-60 chars.`
           : 'Missing or empty page title.',
-        recommendation: 'Add a unique, descriptive title between 50-60 characters to every page.'
+        recommendation: 'Add a unique, descriptive title between 50-60 characters to every page.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
+    }
 
     // Meta description
-    case 'seo-002':
+    case 'seo-002': {
       const descMatch = html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
       const hasDesc = descMatch && descMatch[1].trim().length > 0;
       const descLength = descMatch ? descMatch[1].trim().length : 0;
       const goodDescLength = descLength >= 120 && descLength <= 160;
+      
+      const snippetInfo = descMatch ? extractSnippet(/<meta[^>]+name=["']description["']/i, 1) : extractSnippet(/<head/i, 3);
       
       return {
         passed: hasDesc && goodDescLength,
         details: hasDesc
           ? `Description: "${descMatch[1].trim().substring(0, 100)}..." (${descLength} chars). Optimal: 150-160 chars.`
           : 'Missing meta description.',
-        recommendation: 'Add a unique meta description of 150-160 characters to every page.'
+        recommendation: 'Add a unique meta description of 150-160 characters to every page.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
+    }
 
     // Alt text for images
     case 'wcag-001': {
@@ -230,12 +263,19 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const imgsWithoutAlt = imgTags.filter(img => !/<img[^>]+alt=/i.test(img));
       const allImagesHaveAlt = imgsWithoutAlt.length === 0 && imgTags.length > 0;
       
+      let snippetInfo = { snippet: null, lineNumber: null };
+      if (imgsWithoutAlt.length > 0) {
+        snippetInfo = extractSnippet(new RegExp(imgsWithoutAlt[0].replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i'), 1);
+      }
+      
       return {
         passed: imgTags.length === 0 || allImagesHaveAlt,
         details: imgTags.length === 0 
           ? 'No images found on page.'
           : `${imgTags.length} images found, ${imgsWithoutAlt.length} without alt text.`,
-        recommendation: 'Add descriptive alt text to all <img> tags. Use alt="" for decorative images.'
+        recommendation: 'Add descriptive alt text to all <img> tags. Use alt="" for decorative images.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -627,24 +667,30 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     // JavaScript - Console statements
     case 'eslint-002': {
       const hasConsole = /console\.(log|error|warn|info|debug)\(/i.test(html);
+      const snippetInfo = hasConsole ? extractSnippet(/console\.(log|error|warn|info|debug)\(/i, 2) : { snippet: null, lineNumber: null };
       return {
         passed: !hasConsole,
         details: hasConsole 
           ? 'Found console statements in JavaScript code. Should be removed for production.'
           : 'No console statements detected in inline scripts.',
-        recommendation: 'Remove all console.log, console.error, and similar statements from production code. Use proper logging libraries instead.'
+        recommendation: 'Remove all console.log, console.error, and similar statements from production code. Use proper logging libraries instead.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
     // JavaScript - Debugger statements
     case 'eslint-003': {
       const hasDebugger = /\bdebugger\s*;/i.test(html);
+      const snippetInfo = hasDebugger ? extractSnippet(/\bdebugger\s*;/i, 2) : { snippet: null, lineNumber: null };
       return {
         passed: !hasDebugger,
         details: hasDebugger
           ? 'Found debugger statements in JavaScript code.'
           : 'No debugger statements found.',
-        recommendation: 'Remove all debugger; statements from production code.'
+        recommendation: 'Remove all debugger; statements from production code.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 

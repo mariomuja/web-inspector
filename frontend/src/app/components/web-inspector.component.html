@@ -290,6 +290,15 @@
                     <span *ngFor="let example of violation.examples" class="example-badge">{{ example }}</span>
                   </div>
                 </div>
+
+                <div class="code-snippet-section" *ngIf="violation.codeSnippet">
+                  <div class="code-snippet-header">
+                    <mat-icon>code</mat-icon>
+                    <strong>Source Code Location:</strong>
+                    <span class="line-number" *ngIf="violation.lineNumber">Line {{ violation.lineNumber }}</span>
+                  </div>
+                  <pre class="code-snippet"><code>{{ violation.codeSnippet }}</code></pre>
+                </div>
               </div>
             </div>
           </mat-expansion-panel>

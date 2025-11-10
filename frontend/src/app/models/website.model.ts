@@ -31,6 +31,8 @@ export interface Violation {
   examples?: string[];
   page?: string;
   element?: string;
+  codeSnippet?: string;
+  lineNumber?: number;
 }
 
 export interface AnalysisSummary {
