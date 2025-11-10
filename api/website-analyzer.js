@@ -24,14 +24,19 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
   summary.totalRules = rulesToCheck.length;
 
   try {
-    // Fetch the website
-    const fetch = require('node-fetch');
+    // Fetch the website using native fetch (Node.js 18+)
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    
     const response = await fetch(siteUrl, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; WebInspector/1.0; +https://web-inspector.vercel.app)'
+        'User-Agent': 'Mozilla/5.0 (compatible; WebInspector/1.0; +https://web-inspector.vercel.app)',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
       },
-      timeout: 10000
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);

@@ -6,9 +6,7 @@
   "scripts": {
     "test": "echo \"No tests yet\""
   },
-  "dependencies": {
-    "node-fetch": "^2.6.7"
-  },
+  "dependencies": {},
   "engines": {
     "node": ">=18"
   }

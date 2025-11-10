@@ -18,8 +18,9 @@ import { CommonModule } from '@angular/common';
         <h3>Angaben gemäß § 5 TMG</h3>
         <p>
           <strong>Mario Muja</strong><br>
-          Software Entwickler<br>
-          Hamburg, Deutschland
+          Hohe Liedt 45 F<br>
+          22417 Hamburg<br>
+          Deutschland
         </p>
 
         <h3>Kontakt</h3>
