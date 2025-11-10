@@ -1,5 +1,3 @@
-const { analyzeWebsite } = require('./website-analyzer');
-
 module.exports = async (req, res) => {
   // Set CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,15 +23,20 @@ module.exports = async (req, res) => {
       return;
     }
 
+    // Dynamic import to avoid module loading issues
+    const { analyzeWebsite } = require('./website-analyzer');
+    
     // Analyze the website
     const result = await analyzeWebsite(siteUrl, sourceFilter);
 
     res.status(200).json(result);
   } catch (error) {
     console.error('Analysis error:', error);
+    console.error('Error stack:', error.stack);
     res.status(500).json({ 
       error: 'Failed to analyze website',
-      message: error.message 
+      message: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
   }
 };

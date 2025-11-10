@@ -181,7 +181,7 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       };
 
     // Meta charset
-    case 'html-003':
+    case 'html-003': {
       const hasCharset = /<meta[^>]+charset=/i.test(html);
       const hasViewport = /<meta[^>]+name=["']viewport["']/i.test(html);
       const hasDescription = /<meta[^>]+name=["']description["']/i.test(html);
@@ -192,6 +192,7 @@ function performRuleCheck(rule, html, headers, siteUrl) {
         details: `Charset: ${hasCharset ? '✓' : '✗'}, Viewport: ${hasViewport ? '✓' : '✗'}, Description: ${hasDescription ? '✓' : '✗'}`,
         recommendation: 'Add essential meta tags: <meta charset="UTF-8"> and <meta name="viewport" content="width=device-width, initial-scale=1">'
       };
+    }
 
     // Title tag
     case 'seo-001':
@@ -224,18 +225,19 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       };
 
     // Alt text for images
-    case 'wcag-001':
+    case 'wcag-001': {
       const imgTags = html.match(/<img[^>]*>/gi) || [];
       const imgsWithoutAlt = imgTags.filter(img => !/<img[^>]+alt=/i.test(img));
-      const passed = imgsWithoutAlt.length === 0 && imgTags.length > 0;
+      const allImagesHaveAlt = imgsWithoutAlt.length === 0 && imgTags.length > 0;
       
       return {
-        passed: imgTags.length === 0 || passed,
+        passed: imgTags.length === 0 || allImagesHaveAlt,
         details: imgTags.length === 0 
           ? 'No images found on page.'
           : `${imgTags.length} images found, ${imgsWithoutAlt.length} without alt text.`,
         recommendation: 'Add descriptive alt text to all <img> tags. Use alt="" for decorative images.'
       };
+    }
 
     // Semantic HTML
     case 'wcag-004':
