@@ -1,8 +1,9 @@
 {
-  "buildCommand": "cd frontend && npm install && npm run build -- --configuration=production",
-  "outputDirectory": "frontend/dist/frontend/browser",
+  "buildCommand": "npm run build -- --configuration=production",
+  "outputDirectory": "dist/frontend/browser",
   "installCommand": "npm install",
   "framework": null,
+  "cwd": "frontend",
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -14,4 +15,5 @@
     }
   ]
 }
+
 
