@@ -1,0 +1,312 @@
+<div class="inspector-container">
+  <mat-card class="header-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>verified_user</mat-icon>
+        Web Inspector
+      </mat-card-title>
+      <mat-card-subtitle>
+        Analyze public websites against industry best practices and design guidelines including WCAG 2.1, Core Web Vitals, SEO, and Security
+      </mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="profile-card">
+        <p class="profile-text">
+          Hi, I am <strong>Mario Muja</strong>. I live in Hamburg. This is an application that I have created in my spare free time. 
+          If you need support with Angular/TypeScript development or with this app, then you can contact me on my German phone number 
+          <a href="tel:+4915204641473">+49 1520 464 1473</a> or at 
+          <a href="mailto:mario.muja@gmail.com">mario.muja@gmail.com</a>. 
+          I am looking forward to hearing from you! Have a nice day.
+        </p>
+        <a href="https://github.com/mariomuja/web-inspector" target="_blank" rel="noopener noreferrer" class="github-link">
+          <mat-icon>code</mat-icon>
+          <span>View on GitHub</span>
+        </a>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <mat-card class="selector-card">
+    <mat-card-content>
+      <div class="source-selection-row">
+        <mat-form-field class="source-select" appearance="outline">
+          <mat-label>Validation Source</mat-label>
+          <mat-select
+            [(ngModel)]="selectedSource"
+            [disabled]="isAnalyzing()">
+            <mat-select-trigger>
+              <span class="selected-source-trigger">
+                {{ getSelectedSourceDisplay() }}
+              </span>
+            </mat-select-trigger>
+            <mat-option *ngFor="let source of ruleSources()" [value]="source.id">
+              <div class="source-option">
+                <div class="source-header">
+                  <span class="source-name">{{ source.name }}</span>
+                  <span class="source-org">{{ source.organization }}</span>
+                </div>
+                <div class="source-description">{{ source.description }}</div>
+              </div>
+            </mat-option>
+          </mat-select>
+          <mat-icon matPrefix>rule</mat-icon>
+          <mat-hint>Choose which standards to validate against</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div class="selection-row">
+        <mat-form-field class="service-select" appearance="outline">
+          <mat-label>Select a Website</mat-label>
+          <mat-select 
+            [(ngModel)]="selectedWebsite" 
+            (ngModelChange)="onWebsiteSelectionChange()"
+            [disabled]="isAnalyzing()"
+            panelClass="service-select-panel">
+            <mat-select-trigger>
+              <span class="selected-url">{{ selectedWebsite() || 'Choose a website...' }}</span>
+            </mat-select-trigger>
+            <mat-option *ngFor="let site of websites()" [value]="site.url">
+              <div class="service-option">
+                <div class="service-header">
+                  <span class="service-name">{{ site.name }}</span>
+                  <mat-icon class="service-icon">{{ getWebsiteIcon(site.category) }}</mat-icon>
+                </div>
+                <div class="service-url">{{ site.url }}</div>
+                <div class="service-description">{{ site.description }}</div>
+              </div>
+            </mat-option>
+          </mat-select>
+          <mat-icon matPrefix>language</mat-icon>
+          <mat-hint>Choose from 30 popular websites</mat-hint>
+        </mat-form-field>
+
+        <button
+          mat-raised-button
+          color="primary"
+          class="analyze-button"
+          (click)="analyzeWebsite()"
+          [disabled]="(!selectedWebsite() && !customUrl()) || isAnalyzing()"
+        >
+          <mat-icon>analytics</mat-icon>
+          <span *ngIf="!isAnalyzing()">Analyze Website</span>
+          <span *ngIf="isAnalyzing()">Analyzing...</span>
+        </button>
+      </div>
+
+      <div class="divider-section">
+        <mat-divider></mat-divider>
+        <span class="divider-text">OR</span>
+        <mat-divider></mat-divider>
+      </div>
+
+      <div class="custom-url-row">
+        <mat-form-field class="custom-url-input" appearance="outline">
+          <mat-label>Enter Custom Website URL</mat-label>
+          <input 
+            matInput 
+            type="url"
+            [(ngModel)]="customUrl"
+            (ngModelChange)="onCustomUrlChange()"
+            [disabled]="isAnalyzing()"
+            placeholder="https://example.com">
+          <mat-icon matPrefix>link</mat-icon>
+          <mat-hint>Paste your own website URL to analyze</mat-hint>
+        </mat-form-field>
+      </div>
+
+      <div *ngIf="isAnalyzing()" class="loading-container">
+        <mat-spinner diameter="40"></mat-spinner>
+        <p>Analyzing website for WCAG compliance, SEO, performance, and security...</p>
+      </div>
+
+      <div *ngIf="error()" class="error-message">
+        <mat-icon>error</mat-icon>
+        {{ error() }}
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <div *ngIf="analysisResult() as result" class="results-section">
+    <!-- Violations by Category -->
+    <mat-card class="violations-card" *ngIf="result.violations && result.violations.length > 0">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>warning</mat-icon>
+          Issues and Violations
+        </mat-card-title>
+        <div class="header-actions">
+          <button mat-raised-button color="accent" [matMenuTriggerFor]="exportMenu">
+            <mat-icon>download</mat-icon>
+            Export Results
+            <mat-icon>arrow_drop_down</mat-icon>
+          </button>
+          <mat-menu #exportMenu="matMenu">
+            <button mat-menu-item (click)="exportToPdf()">
+              <mat-icon>picture_as_pdf</mat-icon>
+              <span>PDF Document</span>
+            </button>
+            <button mat-menu-item (click)="exportToMarkdown()">
+              <mat-icon>article</mat-icon>
+              <span>Markdown (.md)</span>
+            </button>
+            <button mat-menu-item (click)="exportToHtml()">
+              <mat-icon>html</mat-icon>
+              <span>HTML Report</span>
+            </button>
+            <button mat-menu-item (click)="exportToCsv()">
+              <mat-icon>table_chart</mat-icon>
+              <span>CSV Spreadsheet</span>
+            </button>
+            <button mat-menu-item (click)="exportToJson()">
+              <mat-icon>data_object</mat-icon>
+              <span>JSON Data</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="exportToGitHub()">
+              <mat-icon>bug_report</mat-icon>
+              <span>GitHub Issues</span>
+            </button>
+            <button mat-menu-item (click)="exportToJira()">
+              <mat-icon>task</mat-icon>
+              <span>JIRA Issues</span>
+            </button>
+            <mat-divider></mat-divider>
+            <button mat-menu-item (click)="copyBadgeMarkdown()">
+              <mat-icon>military_tech</mat-icon>
+              <span>Copy Quality Badge</span>
+            </button>
+          </mat-menu>
+        </div>
+      </mat-card-header>
+      <mat-card-content>
+        <!-- Filters Section -->
+        <div class="filters-section">
+          <div class="filter-group">
+            <label class="filter-label">
+              <mat-icon>filter_list</mat-icon>
+              Filter by Severity:
+            </label>
+            <div class="filter-chips">
+              <mat-chip 
+                [class.active]="filterSeverity().includes('error')"
+                (click)="toggleSeverityFilter('error')"
+                class="filter-chip error-chip">
+                <mat-icon *ngIf="filterSeverity().includes('error')">check</mat-icon>
+                Error
+              </mat-chip>
+              <mat-chip 
+                [class.active]="filterSeverity().includes('warning')"
+                (click)="toggleSeverityFilter('warning')"
+                class="filter-chip warning-chip">
+                <mat-icon *ngIf="filterSeverity().includes('warning')">check</mat-icon>
+                Warning
+              </mat-chip>
+              <mat-chip 
+                [class.active]="filterSeverity().includes('info')"
+                (click)="toggleSeverityFilter('info')"
+                class="filter-chip info-chip">
+                <mat-icon *ngIf="filterSeverity().includes('info')">check</mat-icon>
+                Info
+              </mat-chip>
+            </div>
+          </div>
+
+          <div class="filter-group" *ngIf="availableSources().length > 0">
+            <label class="filter-label">
+              <mat-icon>verified</mat-icon>
+              Filter by Source:
+            </label>
+            <div class="filter-chips">
+              <mat-chip 
+                *ngFor="let source of availableSources()"
+                [class.active]="filterSource().includes(source)"
+                (click)="toggleSourceFilter(source)"
+                class="filter-chip source-chip">
+                <mat-icon *ngIf="filterSource().includes(source)">check</mat-icon>
+                {{ source }}
+              </mat-chip>
+            </div>
+          </div>
+
+          <div class="filter-summary">
+            Showing {{ getFilteredViolations().length }} of {{ result.violations.length }} violations
+          </div>
+        </div>
+        <mat-accordion multi>
+          <mat-expansion-panel *ngFor="let category of getCategoryKeys()" [expanded]="true">
+            <mat-expansion-panel-header>
+              <mat-panel-title>
+                {{ category }}
+              </mat-panel-title>
+              <mat-panel-description>
+                {{ getViolationsByCategory()[category].length }} issue(s)
+              </mat-panel-description>
+            </mat-expansion-panel-header>
+
+            <div class="violations-list">
+              <div *ngFor="let violation of getViolationsByCategory()[category]" class="violation-item">
+                <div class="violation-header">
+                  <mat-chip [color]="getSeverityColor(violation.severity)" selected>
+                    {{ violation.severity.toUpperCase() }}
+                  </mat-chip>
+                  <h3>{{ violation.ruleName }}</h3>
+                </div>
+
+                <div class="violation-source" *ngIf="violation.source">
+                  <mat-icon>verified</mat-icon>
+                  <span>Source: </span>
+                  <a [href]="violation.sourceUrl" target="_blank" rel="noopener noreferrer">
+                    {{ violation.source }}
+                    <mat-icon class="external-link">open_in_new</mat-icon>
+                  </a>
+                </div>
+
+                <div class="violation-content">
+                  <p class="violation-description">{{ violation.description }}</p>
+                  <p class="violation-details-text">{{ violation.details }}</p>
+                </div>
+
+                <div class="violation-actions">
+                  <div class="action-box recommendation-box">
+                    <mat-icon>lightbulb</mat-icon>
+                    <div>
+                      <strong>Recommendation:</strong>
+                      <p>{{ violation.recommendation }}</p>
+                    </div>
+                  </div>
+
+                  <div class="action-box impact-box" *ngIf="violation.impact">
+                    <mat-icon>info</mat-icon>
+                    <div>
+                      <strong>Impact:</strong>
+                      <p>{{ violation.impact }}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="violation-examples" *ngIf="violation.examples && violation.examples.length > 0">
+                  <strong>Examples:</strong>
+                  <div class="examples-list">
+                    <span *ngFor="let example of violation.examples" class="example-badge">{{ example }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-expansion-panel>
+        </mat-accordion>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- No Issues Card -->
+    <mat-card class="no-issues-card" *ngIf="result.violations.length === 0">
+      <mat-card-content>
+        <div class="no-issues-content">
+          <mat-icon>check_circle</mat-icon>
+          <h2>Excellent!</h2>
+          <p>No violations found. This website follows all the design guidelines and best practices.</p>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>
+
