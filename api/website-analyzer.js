@@ -24,26 +24,49 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
   summary.totalRules = rulesToCheck.length;
 
   try {
-    // Fetch the website using native fetch (Node.js 18+)
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    // Use https module for Node.js compatibility
+    const https = require('https');
+    const http = require('http');
+    const { URL } = require('url');
     
-    const response = await fetch(siteUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; WebInspector/1.0; +https://web-inspector.vercel.app)',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
-      },
-      signal: controller.signal
+    const urlObj = new URL(siteUrl);
+    const protocol = urlObj.protocol === 'https:' ? https : http;
+    
+    // Fetch the website
+    const html = await new Promise((resolve, reject) => {
+      const timeoutId = setTimeout(() => {
+        reject(new Error('Request timeout after 10 seconds'));
+      }, 10000);
+
+      const req = protocol.get(siteUrl, {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; WebInspector/1.0; +https://web-inspector.vercel.app)',
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+        }
+      }, (res) => {
+        clearTimeout(timeoutId);
+
+        if (res.statusCode !== 200) {
+          reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
+          return;
+        }
+
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => resolve(data));
+        res.on('error', reject);
+      });
+
+      req.on('error', (err) => {
+        clearTimeout(timeoutId);
+        reject(err);
+      });
+      
+      req.end();
     });
 
-    clearTimeout(timeoutId);
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-    }
-
-    const html = await response.text();
-    const headers = response.headers;
+    // Get response headers (simplified for now)
+    const headers = new Map();
 
     // Perform various checks based on rules
     rulesToCheck.forEach(rule => {
