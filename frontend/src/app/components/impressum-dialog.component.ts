@@ -27,7 +27,7 @@ import { CommonModule } from '@angular/common';
         <p>
           <strong>Telefon Deutschland:</strong> <a href="tel:+4915204641473">+49 1520 464 1473</a><br>
           <strong>Telefon Italien:</strong> <a href="tel:+393453450098">+39 345 345 0098</a><br>
-          <strong>E-Mail:</strong> <a href="mailto:mario.muja@gmail.com">mario.muja@gmail.com</a>
+          <strong>E-Mail:</strong> <a href="mailto:mario.muja&#64;gmail.com">mario.muja&#64;gmail.com</a>
         </p>
 
         <h3>Haftungsausschluss</h3>
