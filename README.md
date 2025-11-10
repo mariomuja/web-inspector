@@ -1,12 +1,12 @@
 # 🔍 Web Inspector
 
-[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Try_Now!-success?style=for-the-badge)](https://web-inspector.vercel.app)
+[![Live Demo](https://img.shields.io/badge/🚀_Live_Demo-Try_Now!-success?style=for-the-badge)](https://web-inspection.vercel.app)
 [![GitHub](https://img.shields.io/badge/GitHub-mariomuja%2Fweb--inspector-blue?style=flat-square&logo=github)](https://github.com/mariomuja/web-inspector)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.2-blue?style=flat-square&logo=typescript)](https://www.typescriptlang.org/)
 [![Angular](https://img.shields.io/badge/Angular-20-red?style=flat-square&logo=angular)](https://angular.io/)
 [![Vercel](https://img.shields.io/badge/Deployed_on-Vercel-black?style=flat-square&logo=vercel)](https://vercel.com/)
 
-> **🎯 [Try the Live Demo →](https://web-inspector.vercel.app)**  
+> **🎯 [Try the Live Demo →](https://web-inspection.vercel.app)**  
 > Analyze any public website against industry best practices in seconds!
 
 A comprehensive website analysis tool that evaluates public websites against 50+ design and development best practices from WCAG 2.1, Google Core Web Vitals, SEO standards, Security guidelines, and more. Features real-time analysis, multiple export formats, and actionable recommendations.

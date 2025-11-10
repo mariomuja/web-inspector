@@ -40,7 +40,7 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
 
       const req = protocol.get(siteUrl, {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; WebInspector/1.0; +https://web-inspector.vercel.app)',
+          'User-Agent': 'Mozilla/5.0 (compatible; WebInspector/1.0; +https://web-inspection.vercel.app)',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
         }
       }, (res) => {
@@ -51,7 +51,7 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
           const redirectUrl = new URL(res.headers.location, siteUrl).href;
           protocol.get(redirectUrl, {
             headers: {
-              'User-Agent': 'Mozilla/5.0 (compatible; WebInspector/1.0; +https://web-inspector.vercel.app)',
+              'User-Agent': 'Mozilla/5.0 (compatible; WebInspector/1.0; +https://web-inspection.vercel.app)',
               'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
             }
           }, (redirectRes) => {
