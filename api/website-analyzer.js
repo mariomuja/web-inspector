@@ -33,7 +33,7 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
     const protocol = urlObj.protocol === 'https:' ? https : http;
     
     // Fetch the website
-    const html = await new Promise((resolve, reject) => {
+    const result = await new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         reject(new Error('Request timeout after 10 seconds'));
       }, 10000);
@@ -46,6 +46,23 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
       }, (res) => {
         clearTimeout(timeoutId);
 
+        // Follow redirects
+        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+          const redirectUrl = new URL(res.headers.location, siteUrl).href;
+          protocol.get(redirectUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (compatible; WebInspector/1.0; +https://web-inspector.vercel.app)',
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8'
+            }
+          }, (redirectRes) => {
+            let data = '';
+            redirectRes.on('data', chunk => data += chunk);
+            redirectRes.on('end', () => resolve({ html: data, headers: redirectRes.headers }));
+            redirectRes.on('error', reject);
+          }).on('error', reject);
+          return;
+        }
+
         if (res.statusCode !== 200) {
           reject(new Error(`HTTP ${res.statusCode}: ${res.statusMessage}`));
           return;
@@ -53,7 +70,7 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
 
         let data = '';
         res.on('data', chunk => data += chunk);
-        res.on('end', () => resolve(data));
+        res.on('end', () => resolve({ html: data, headers: res.headers }));
         res.on('error', reject);
       });
 
@@ -65,8 +82,8 @@ async function analyzeWebsite(siteUrl, sourceFilter = 'all') {
       req.end();
     });
 
-    // Get response headers (simplified for now)
-    const headers = new Map();
+    const html = result.html;
+    const headers = new Map(Object.entries(result.headers));
 
     // Perform various checks based on rules
     rulesToCheck.forEach(rule => {
