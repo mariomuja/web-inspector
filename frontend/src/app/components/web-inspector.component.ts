@@ -65,7 +65,8 @@ export class WebInspectorComponent implements OnInit {
     private webAnalysisService: WebAnalysisService,
     private pdfExportService: PdfExportService,
     private exportService: ExportService,
-    private snackBar: MatSnackBar
+    private snackBar: MatSnackBar,
+    private dialog: MatDialog
   ) {}
 
   ngOnInit(): void {
