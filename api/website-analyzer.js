@@ -440,10 +440,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'googlejs-002': {
       const hasJsDoc = /\/\*\*[\s\S]*?@(param|return|type)[\s\S]*?\*\//i.test(html);
       const hasFunctions = /function\s+\w+\s*\(|const\s+\w+\s*=\s*\([^)]*\)\s*=>/i.test(html);
+      
+      const snippetInfo = hasFunctions && !hasJsDoc ? extractSnippet(/function\s+\w+\s*\(/i, 2) : (hasJsDoc ? extractSnippet(/\/\*\*/i, 3) : { snippet: null, lineNumber: null });
+      
       return {
         passed: hasJsDoc || !hasFunctions,
         details: `JSDoc: ${hasJsDoc ? 'Found' : 'Not found'}, Functions: ${hasFunctions ? 'Found' : 'None'}`,
-        recommendation: 'Document functions with JSDoc comments: /** @param {type} name @return {type} */'
+        recommendation: 'Document functions with JSDoc comments: /** @param {type} name @return {type} */',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -532,12 +537,16 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     // Skip links
     case 'a11y-003': {
       const hasSkipLink = /<a[^>]*href=["']#(main|content|skip)["'][^>]*>(skip|skip to|jump to)/i.test(html);
+      const snippetInfo = hasSkipLink ? extractSnippet(/href=["']#(main|content|skip)["']/i, 1) : extractSnippet(/<body/i, 4);
+      
       return {
         passed: hasSkipLink,
         details: hasSkipLink
           ? 'Skip navigation link found.'
           : 'No skip link detected.',
-        recommendation: 'Add <a href="#main" class="skip-link">Skip to main content</a> at the beginning of the page.'
+        recommendation: 'Add <a href="#main" class="skip-link">Skip to main content</a> at the beginning of the page.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -684,15 +693,22 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     }
 
     // Heading hierarchy
-    case 'seo-003':
+    case 'seo-003': {
       const h1Count = (html.match(/<h1/gi) || []).length;
-      const hasH1 = h1Count === 1;
+      const h2Count = (html.match(/<h2[^>]*>/gi) || []).length;
+      const h3Count = (html.match(/<h3[^>]*>/gi) || []).length;
+      const skipsLevels = h3Count > 0 && h2Count === 0;
+      
+      const snippetInfo = h1Count !== 1 ? extractSnippet(/<h1/i, 2) : (skipsLevels ? extractSnippet(/<h3/i, 2) : { snippet: null, lineNumber: null });
       
       return {
-        passed: hasH1,
-        details: `Found ${h1Count} <h1> tags. Should have exactly one per page.`,
-        recommendation: 'Use exactly one <h1> per page for the main heading. Use h2-h6 for subheadings in logical order.'
+        passed: h1Count === 1 && !skipsLevels,
+        details: `Headings: ${h1Count} <h1>, ${h2Count} <h2>, ${h3Count} <h3>. ${skipsLevels ? 'Skips heading levels!' : ''}`,
+        recommendation: 'Use exactly one <h1> per page. Maintain logical hierarchy: h1→h2→h3, never skip levels.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
+    }
 
     // JavaScript - Console statements
     case 'eslint-002': {
@@ -797,24 +813,32 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     // Meta tags - SEO
     case 'seo-006': {
       const hasCanonical = /<link[^>]+rel=["']canonical["']/i.test(html);
+      const snippetInfo = hasCanonical ? extractSnippet(/<link[^>]+rel=["']canonical["']/i, 1) : extractSnippet(/<head/i, 5);
+      
       return {
         passed: hasCanonical,
         details: hasCanonical
           ? 'Canonical URL is specified.'
           : 'Missing canonical URL link.',
-        recommendation: 'Add <link rel="canonical" href="https://yoursite.com/page"> to avoid duplicate content issues.'
+        recommendation: 'Add <link rel="canonical" href="https://yoursite.com/page"> to avoid duplicate content issues.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
     // Structured data
     case 'schema-001': {
       const hasJsonLd = /<script[^>]+type=["']application\/ld\+json["'][^>]*>/i.test(html);
+      const snippetInfo = hasJsonLd ? extractSnippet(/application\/ld\+json/i, 3) : extractSnippet(/<head/i, 6);
+      
       return {
         passed: hasJsonLd,
         details: hasJsonLd
           ? 'Found JSON-LD structured data.'
           : 'No structured data (JSON-LD) found.',
-        recommendation: 'Add Schema.org structured data using JSON-LD format for better search engine understanding.'
+        recommendation: 'Add Schema.org structured data using JSON-LD format for better search engine understanding.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -936,12 +960,17 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'html-001': {
       const hasUnclosedTags = /<(div|p|span|a|button)[^>]*>(?![\s\S]*<\/\1>)/i.test(html.substring(0, 5000));
       const hasObsoleteTags = /<(font|center|marquee|blink)/i.test(html);
+      
+      const snippetInfo = hasObsoleteTags ? extractSnippet(/<(font|center|marquee|blink)/i, 2) : (hasUnclosedTags ? extractSnippet(/<html/i, 4) : { snippet: null, lineNumber: null });
+      
       return {
         passed: !hasUnclosedTags && !hasObsoleteTags,
         details: hasObsoleteTags 
           ? 'Found obsolete HTML tags (font, center, marquee, etc.).'
           : 'No obvious HTML validation errors detected.',
-        recommendation: 'Use W3C HTML Validator to check for all validation errors. Remove obsolete tags.'
+        recommendation: 'Use W3C HTML Validator to check for all validation errors. Remove obsolete tags.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -1057,12 +1086,16 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'seo-005': {
       // Check robots.txt or common sitemap locations (can't verify here, but check for reference)
       const mentionsSitemap = /sitemap/i.test(html);
+      const snippetInfo = mentionsSitemap ? extractSnippet(/sitemap/i, 2) : extractSnippet(/<footer|<body/i, 4);
+      
       return {
         passed: mentionsSitemap,
         details: mentionsSitemap
           ? 'Sitemap referenced in page.'
           : 'No sitemap reference found. Check /sitemap.xml manually.',
-        recommendation: 'Create an XML sitemap at /sitemap.xml and reference it in robots.txt.'
+        recommendation: 'Create an XML sitemap at /sitemap.xml and reference it in robots.txt.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -1152,10 +1185,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'airbnb-002': {
       const hasArrowFn = /=>\s*\{|=>\s*[^{]/i.test(html);
       const hasFunctionKeyword = /function\s*\(/i.test(html);
+      
+      const snippetInfo = hasFunctionKeyword && !hasArrowFn ? extractSnippet(/function\s*\(/i, 2) : (hasArrowFn ? extractSnippet(/=>/i, 1) : { snippet: null, lineNumber: null });
+      
       return {
         passed: hasArrowFn || !hasFunctionKeyword,
         details: `Arrow functions: ${hasArrowFn ? 'Used' : 'Not found'}, function keyword: ${hasFunctionKeyword ? 'Used' : 'Not used'}`,
-        recommendation: 'Prefer arrow functions for callbacks and anonymous functions.'
+        recommendation: 'Prefer arrow functions for callbacks and anonymous functions.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -1235,12 +1273,16 @@ function performRuleCheck(rule, html, headers, siteUrl) {
     case 'ux-001': {
       const hasNav = /<nav[^>]*>/i.test(html);
       const navLinks = hasNav ? (html.match(/<nav[\s\S]*?<\/nav>/i)?.[0]?.match(/<a[^>]*>/gi) || []).length : 0;
+      const snippetInfo = hasNav ? extractSnippet(/<nav/i, 3) : extractSnippet(/<body/i, 5);
+      
       return {
         passed: hasNav && navLinks >= 3,
         details: hasNav
           ? `Navigation found with ${navLinks} links.`
           : 'No <nav> element found.',
-        recommendation: 'Include clear, consistent navigation with <nav> element containing main site links.'
+        recommendation: 'Include clear, consistent navigation with <nav> element containing main site links.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
@@ -1250,10 +1292,15 @@ function performRuleCheck(rule, html, headers, siteUrl) {
       const labels = (html.match(/<label[^>]*>/gi) || []).length;
       const inputs = (html.match(/<input[^>]*>/gi) || []).length;
       const hasPlaceholders = /placeholder=/i.test(html);
+      
+      const snippetInfo = forms > 0 ? extractSnippet(/<form/i, 3) : { snippet: null, lineNumber: null };
+      
       return {
         passed: forms === 0 || (labels > 0 && hasPlaceholders),
         details: `${forms} forms, ${inputs} inputs, ${labels} labels, Placeholders: ${hasPlaceholders}`,
-        recommendation: 'Use clear labels, appropriate input types, placeholders, and validation for all forms.'
+        recommendation: 'Use clear labels, appropriate input types, placeholders, and validation for all forms.',
+        codeSnippet: snippetInfo.snippet,
+        lineNumber: snippetInfo.lineNumber
       };
     }
 
