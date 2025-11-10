@@ -20,6 +20,7 @@ import { PdfExportService } from '../services/pdf-export.service';
 import { ExportService } from '../services/export.service';
 import { Website, WebAnalysisResult, Violation } from '../models/website.model';
 import { RuleSource, RULE_SOURCES } from '../models/rule-source.model';
+import { ImpressumDialogComponent } from './impressum-dialog.component';
 
 @Component({
   selector: 'app-web-inspector',
@@ -317,6 +318,13 @@ export class WebInspectorComponent implements OnInit {
     
     // Format: "Name - Organization"
     return `${source.name} - ${source.organization}`;
+  }
+
+  openImpressum(): void {
+    this.dialog.open(ImpressumDialogComponent, {
+      width: '700px',
+      maxHeight: '90vh'
+    });
   }
 }
 
